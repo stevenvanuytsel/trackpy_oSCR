@@ -121,6 +121,7 @@ def pair_correlation_2d(feat, cutoff, fraction=1., dr=.5, p_indices=None,
     # Estimate upper bound for neighborhood particle count
     max_p_count = int(np.pi * (r_edges.max() + dr)**2 *
                       ndensity * max_rel_ndensity)
+
     # Protect against too large memory usage
     if len(pos) * max_p_count > MAX_ARRAY_SIZE:
           raise MemoryError('The distance array will be larger than the maximum '
@@ -138,15 +139,29 @@ def pair_correlation_2d(feat, cutoff, fraction=1., dr=.5, p_indices=None,
     mask = (dist > 0) & np.isfinite(dist)
     dist = dist[mask]
 
+    # Arrange the absolute particle counts in the correct bins 
+    counts = np.histogram(dist, bins=r_edges)[0]
+    # Make radii sequence which holds the radii to calculate the area with
+    # Needs to have the same length as there are particles, and is filled with the lower
+    # value of the bin the distance is in
+    radii = []
+    for idx, count in enumerate(counts):
+        for i in range(count):
+            radii.append(r_edges[idx])
+    radii = np.asarray(radii)
+
+    # Calculate arclength of r-values in bins so we can multiply with dr to find area of
+    # circle segment
     if handle_edge:
         pos_repeated = pos[:, np.newaxis].repeat(max_p_count, axis=1)[mask]
-        arclen = arclen_2d_bounded(dist, pos_repeated,
+        arclen = arclen_2d_bounded(radii, pos_repeated,
                                    np.array([[xmin, xmax], [ymin, ymax]]))
     else:
-        arclen = 2*np.pi*dist
-    g_r = np.histogram(dist, bins=r_edges, weights=1/arclen)[0]
+        arclen = 2*np.pi*radii
 
-    return r_edges, g_r / (ndensity * len(pos) * dr)
+    # Normalise to number density and area of the circle segment -> arclen*dr+pi*dr**2
+    g_r = np.histogram(dist, bins=r_edges, weights=1/(ndensity*len(pos)*((dr*arclen)+(np.pi*dr**2))))[0]
+    return r_edges, g_r, counts, ndensity
 
 
 def pair_correlation_3d(feat, cutoff, fraction=1., dr=.5, p_indices=None,
