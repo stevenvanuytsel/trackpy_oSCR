@@ -161,7 +161,7 @@ def pair_correlation_2d(feat, cutoff, fraction=1., dr=.5, p_indices=None,
 
     # Normalise to number density and area of the circle segment -> arclen*dr+pi*dr**2
     g_r = np.histogram(dist, bins=r_edges, weights=1/(ndensity*len(pos)*((dr*arclen)+(np.pi*dr**2))))[0]
-    return r_edges, g_r, counts, ndensity
+    return r_edges, g_r, counts, ndensity, arclen
 
 
 def pair_correlation_3d(feat, cutoff, fraction=1., dr=.5, p_indices=None,
