@@ -444,7 +444,11 @@ def locate(raw_image, diameter, minmass=None, maxsize=None, separation=None,
         black_level, noise = measure_noise(image, raw_image, radius)
         Npx = N_binary_mask(radius, ndim)
         mass = refined_coords['raw_mass'].values - Npx * black_level
-        ep = _static_error(mass, noise, radius, noise_size)
+        # Allow noise_size to be zero if no Gaussian blurring of image is needed in preprocessing w/o preventing ep calculation
+        if noise_size == 0:
+          ep = _static_error(mass, noise, radius, 1)
+        else:
+          ep = _static_error(mass, noise, radius, noise_size)
 
         if ep.ndim == 1:
             refined_coords['ep'] = ep
