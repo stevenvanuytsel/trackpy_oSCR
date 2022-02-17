@@ -136,7 +136,8 @@ def bandpass(image, lshort, llong, threshold=None, truncate=4):
             threshold = 1/255.
     background = boxcar(image, llong)
     result = lowpass(image, lshort, truncate)
-    result -= background
+    # Ensure no issues due to unsigned integers
+    result = np.subtract(result.astype(np.int16), background.astype(np.int16)).clip(0).astype(np.uint16)
     return np.where(result >= threshold, result, 0)
 
 @pipeline
