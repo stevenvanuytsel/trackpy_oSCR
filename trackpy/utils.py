@@ -1,11 +1,9 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import logging
 import functools
 import re
 import sys
 import warnings
+from collections.abc import Hashable
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from distutils.version import LooseVersion
@@ -19,56 +17,18 @@ import yaml
 
 import trackpy
 
-try:
-    from collections.abc import Hashable
-except ImportError:
-    # Necessary for Python 2.7 but depecated since 3.3
-    from collections import Hashable
 
-# Set is_pandas_since_016 for use elsewhere.
-# Pandas >= 0.16.0 lets us check if a DataFrame is a view.
-try:
-    is_pandas_since_016 = (LooseVersion(pd.__version__) >=
-                           LooseVersion('0.16.0'))
-except ValueError:  # Probably a development version
-    is_pandas_since_016 = True
-
-try:
-    is_pandas_since_017 = (LooseVersion(pd.__version__) >=
-                           LooseVersion('0.17.0'))
-except ValueError:  # Probably a development version
-    is_pandas_since_017 = True
-
-try:
-    is_pandas_since_018 = (LooseVersion(pd.__version__) >=
-                           LooseVersion('0.18.0'))
-except ValueError:  # Probably a development version
-    is_pandas_since_018 = True
 try:
     is_pandas_since_023 = (LooseVersion(pd.__version__) >=
                            LooseVersion('0.23.0'))
 except ValueError:  # Probably a development version
     is_pandas_since_023 = True
 
-# Wrap the scipy cKDTree to work around a bug in scipy 0.18.0
+# Emit warnings in refine.least_squares for scipy 1.5
 try:
-    is_scipy_018 = LooseVersion(scipy.__version__) == LooseVersion('0.18.0')
+    is_scipy_15 = LooseVersion("1.5.0") <= LooseVersion(scipy.__version__) < LooseVersion('1.6.0')
 except ValueError:  # Probably a development version
-    is_scipy_018 = False
-
-
-if is_scipy_018:
-    from scipy.spatial import KDTree as cKDTree
-    warnings.warn("Due to a bug in Scipy 0.18.0, the (faster) cKDTree cannot "
-                  "be used. For better linking performance, upgrade or "
-                  "downgrade scipy.")
-else:
-    from scipy.spatial import cKDTree
-
-try:
-    is_scipy_since_100 = LooseVersion(scipy.__version__) >= LooseVersion('1.0.0')
-except ValueError:  # Probably a development version
-    is_scipy_since_100 = True
+    is_scipy_15 = False
 
 
 def fit_powerlaw(data, plot=True, **kwargs):
@@ -91,7 +51,7 @@ def fit_powerlaw(data, plot=True, **kwargs):
     return values
 
 
-class memo(object):
+class memo:
     """Decorator. Caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned
     (not reevaluated).
@@ -314,11 +274,8 @@ def quiet(suppress=True):
     else:
         trackpy.logger.setLevel(logging.INFO)
 
-def _pandas_sort_pre_017(df, by, *args, **kwargs):
-    """Use sort() to sort a DataFrame"""
-    return df.sort(*args, columns=by, **kwargs)
 
-def _pandas_sort_post_017(df, by, *args, **kwargs):
+def pandas_sort(df, by, *args, **kwargs):
     """
     Use sort_values() to sort a DataFrame
     This raises a ValueError if the given value is both
@@ -331,39 +288,6 @@ def _pandas_sort_post_017(df, by, *args, **kwargs):
     if df.index.name is not None and df.index.name in by:
         df.index.name += '_index'
     return df.sort_values(*args, by=by, **kwargs)
-
-if is_pandas_since_017:
-    pandas_sort = _pandas_sort_post_017
-else:
-    pandas_sort = _pandas_sort_pre_017
-
-def _pandas_iloc_pre_016(df, inds):
-    """Workaround for bug, iloc with empty list, in pandas < 0.16"""
-    if len(inds) > 0:
-        return df.iloc[inds]
-    else:
-        return df.iloc[:0]
-
-def _pandas_iloc_since_016(df, inds):
-    return df.iloc[inds]
-
-if is_pandas_since_016:
-    pandas_iloc = _pandas_iloc_since_016
-else:
-    pandas_iloc = _pandas_iloc_pre_016
-
-def _pandas_rolling_pre_018(df, window, *args, **kwargs):
-    """Use rolling_mean() to compute a rolling average"""
-    return pd.rolling_mean(df, window, *args, **kwargs)
-
-def _pandas_rolling_since_018(df, window, *args, **kwargs):
-    """Use rolling() to compute a rolling average"""
-    return df.rolling(window, *args, **kwargs).mean()
-
-if is_pandas_since_018:
-    pandas_rolling = _pandas_rolling_since_018
-else:
-    pandas_rolling = _pandas_rolling_pre_018
 
 
 def _pandas_concat_post_023(*args, **kwargs):
@@ -410,7 +334,7 @@ def is_isotropic(value):
         return True
 
 
-class ReaderCached(object):
+class ReaderCached:
     """ Simple wrapper that provides cacheing of image readers """
     def __init__(self, reader):
         self.reader = reader
@@ -479,7 +403,7 @@ def get_pool(processes):
     # Handle & validate argument `processes`
     if processes == "auto":
         processes = None  # Is replaced with `os.cpu_count` in Pool
-    elif not isinstance(processes, six.integer_types):
+    elif not isinstance(processes, int):
         raise TypeError("`processes` must either be an integer or 'auto', "
                         "was type {}".format(type(processes)))
 

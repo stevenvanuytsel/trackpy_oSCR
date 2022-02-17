@@ -5,15 +5,8 @@ from setuptools import setup
 
 try:
     descr = open(os.path.join(os.path.dirname(__file__), 'README.md')).read()
-except IOError:
+except OSError:
     descr = ''
-
-try:
-    from pypandoc import convert
-    descr = convert(descr, 'rst', format='md')
-except ImportError:
-    pass
-
 
 # In some cases, the numpy include path is not present by default.
 # Let's try to obtain it.
@@ -32,10 +25,18 @@ setup_parameters = dict(
     author = "Trackpy Contributors",
     author_email = "daniel.b.allan@gmail.com",
     url = "https://github.com/soft-matter/trackpy",
-    install_requires = ['numpy>=1.9', 'scipy>=0.14', 'six>=1.8',
-                        'pandas>=0.15', 'pyyaml', 'matplotlib'],
+    install_requires = ['numpy>=1.14', 'scipy>=1.1', 'pandas>=0.22', 'pyyaml', 'matplotlib'],
+    python_requires=">=3.6",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+    ],
     packages = ['trackpy', 'trackpy.refine', 'trackpy.linking', 'trackpy.locate_functions'],
     long_description = descr,
+    long_description_content_type='text/markdown'
 )
 
 setup(**setup_parameters)

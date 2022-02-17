@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import sys
 import importlib
 from collections import OrderedDict
@@ -30,8 +27,8 @@ def dependencies():
         mapping the name of each package to its version string or, if an
         optional dependency is not installed, None
     """
-    packages = ['six', 'numpy', 'scipy', 'matplotlib', 'pandas',
-                'skimage', 'sklearn', 'pyyaml', 'tables', 'numba', 'pims']
+    packages = ['numpy', 'scipy', 'matplotlib', 'pandas',
+                'sklearn', 'pyyaml', 'tables', 'numba', 'pims']
     result = OrderedDict()
 
     # trackpy itself comes first

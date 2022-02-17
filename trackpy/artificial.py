@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import numpy as np
 import pandas as pd
 import warnings
@@ -38,7 +35,7 @@ def feat_hat(r, ndim, disc_size):
 
 def feat_step(r, ndim):
     """ Solid disc. """
-    return (r <= 1).astype(np.float)
+    return (r <= 1).astype(float)
 
 
 feat_disc = feat_hat
@@ -106,7 +103,7 @@ def draw_feature(image, position, size, max_value=None, feat_func='gauss',
         upper_bound = min(int(np.ceil(c + m / 2 + 1)), lim)
         rect.append(slice(lower_bound, upper_bound))
         vectors.append(np.arange(lower_bound - c, upper_bound - c) / s)
-    coords = np.meshgrid(*vectors, indexing='ij', sparse=True)
+    coords = np.meshgrid(*vectors, indexing='ij')
     r = np.sqrt(np.sum(np.array(coords)**2, axis=0))
     spot = max_value * feat_func(r, ndim=image.ndim, **kwargs)
     image[tuple(rect)] += spot.astype(image.dtype)
@@ -217,9 +214,9 @@ def draw_array(N, size, separation=None, ndim=2, **kwargs):
     Nsqrt = int(N**(1/ndim) + 0.9999)
     pos = np.meshgrid(*[np.arange(0, s * Nsqrt, s) for s in separation],
                       indexing='ij')
-    pos = np.array([p.ravel() for p in pos], dtype=np.float).T[:N] + margin
+    pos = np.array([p.ravel() for p in pos], dtype=float).T[:N] + margin
     pos += (np.random.random(pos.shape) - 0.5)  #randomize subpixel location
-    shape = tuple(np.max(pos, axis=0).astype(np.int) + margin)
+    shape = tuple(np.max(pos, axis=0).astype(int) + margin)
     return pos, draw_spots(shape, pos, size, **kwargs)
 
 
@@ -275,7 +272,7 @@ def draw_cluster(image, position, size, cluster_size, hard_radius=1., angle=0,
         draw_feature(image, pos, size, **kwargs)
     return coord
 
-class SimulatedImage(object):
+class SimulatedImage:
     """ This class makes it easy to generate artificial pictures.
 
     Parameters
@@ -471,7 +468,7 @@ class SimulatedImage(object):
     @property
     def coords(self):
         if len(self._coords) == 0:
-            return np.zeros((0, self.ndim), dtype=np.float)
+            return np.zeros((0, self.ndim), dtype=float)
         return np.array(self._coords)
 
     def f(self, noise=0):

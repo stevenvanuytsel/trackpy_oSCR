@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import os
 from copy import deepcopy
 import unittest
@@ -15,8 +12,7 @@ from trackpy.try_numba import NUMBA_AVAILABLE
 from trackpy.linking.legacy import (link, link_df, link_df_iter,
                                     PointND, Hash_table, strip_diagnostics,
                                     SubnetOversizeException)
-from trackpy.utils import (is_pandas_since_016,
-                           pandas_sort, pandas_concat, validate_tuple)
+from trackpy.utils import pandas_sort, pandas_concat, validate_tuple
 from trackpy.tests.common import StrictTestCase, assert_traj_equal
 
 
@@ -69,7 +65,7 @@ def contracting_grid():
     return allpts
 
 
-class CommonTrackingTests(object):
+class CommonTrackingTests:
     do_diagnostics = False  # Don't ask for diagnostic info from linker
 
     def test_one_trivial_stepper(self):
@@ -533,14 +529,14 @@ class SubnetNeededTests(CommonTrackingTests):
         actual = self.link_df(f, 13)
         pandas_sort(case1, ['x'], inplace=True)
         pandas_sort(actual, ['x'], inplace=True)
-        assert_array_equal(actual['particle'].values.astype(np.int),
-                           case1['particle'].values.astype(np.int))
+        assert_array_equal(actual['particle'].values.astype(int),
+                           case1['particle'].values.astype(int))
 
         actual = self.link_df(f, 12)
         pandas_sort(case2, ['x'], inplace=True)
         pandas_sort(actual, ['x'], inplace=True)
-        assert_array_equal(actual['particle'].values.astype(np.int),
-                           case2['particle'].values.astype(np.int))
+        assert_array_equal(actual['particle'].values.astype(int),
+                           case2['particle'].values.astype(int))
 
     def test_memory(self):
         """A unit-stepping trajectory and a random walk are observed
@@ -662,11 +658,11 @@ class DiagnosticsTests(CommonTrackingTests):
 
     def link_df(self, *args, **kwargs):
         return self._strip_diag(
-            super(DiagnosticsTests, self).link_df(*args, **kwargs))
+            super().link_df(*args, **kwargs))
 
     def link_df_iter(self, *args, **kwargs):
         df = self._strip_diag(
-            super(DiagnosticsTests, self).link_df_iter(*args, **kwargs))
+            super().link_df_iter(*args, **kwargs))
         # pandas_concat() can mess with the column order if not all columns
         # are present in all DataFrames. So we enforce it here.
         return df.reindex(columns=['frame', 'x', 'y', 'particle'])
@@ -718,7 +714,7 @@ class TestKDTreeWithDropLink(CommonTrackingTests, StrictTestCase):
         without_subnet = self.link_df(f, 1.5, retain_index=True)
         assert_traj_equal(without_subnet, f_expected_without_subnet)
         with_subnet = self.link_df(f, 5, retain_index=True)
-        assert set(with_subnet.particle) == set((0, 1, 2))
+        assert set(with_subnet.particle) == {0, 1, 2}
 
 
 class TestBTreeWithRecursiveLink(SubnetNeededTests, StrictTestCase):

@@ -1,0 +1,37 @@
+name: Conda
+
+on: [push, pull_request]
+
+jobs:
+  TestConda:
+    name: ${{ matrix.os }} - Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [3.8, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Conda
+        uses: s-weigand/setup-conda@v1.0.5
+        with:
+          activate-conda: false
+          conda-channels: conda-forge
+
+      - name: Setup Environment
+        shell: bash
+        run: |
+          conda create --name test python=${{ matrix.python }} pytest numpy scipy matplotlib pandas pytables numba scikit-learn pyyaml
+          source activate test
+          python -V
+          conda info
+          conda list
+
+      - name: Run tests
+        shell: bash
+        run: |
+          source activate test
+          pytest trackpy

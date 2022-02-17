@@ -1,7 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
-from six.moves import range
 import os
 import unittest
 import warnings
@@ -9,7 +5,11 @@ import warnings
 import numpy as np
 from pandas import DataFrame
 from numpy.testing import assert_allclose, assert_array_less
-from pandas.util.testing import assert_produces_warning
+
+try:
+    from pandas._testing import assert_produces_warning
+except ImportError:
+    from pandas.util.testing import assert_produces_warning
 
 import trackpy as tp
 from trackpy.try_numba import NUMBA_AVAILABLE
@@ -44,7 +44,7 @@ def compare(shape, count, radius, noise_level, **kwargs):
 class OldMinmass(StrictTestCase):
     def check_skip(self):
         pass
-    
+
     def setUp(self):
         self.shape = (128, 128)
         self.pos = gen_nonoverlapping_locations(self.shape, 10, separation=20,
@@ -59,7 +59,7 @@ class OldMinmass(StrictTestCase):
         minmass_v04 = tp.minmass_v04_change(im, minmass_v03,
                                             diameter=self.tp_diameter)
         return minmass_v04
-    
+
     def test_oldmass_8bit(self):
         old_minmass = 11000
         im = draw_spots(self.shape, self.pos, self.size, bitdepth=8,
@@ -91,12 +91,12 @@ class OldMinmass(StrictTestCase):
         old_minmass = 5500
         im = draw_spots(self.shape, self.pos, self.size, bitdepth=8,
                         noise_level=50)
-        im = (im / im.max()).astype(np.float)
+        im = (im / im.max()).astype(float)
 
         new_minmass = self.minmass_v02_to_v04(im, old_minmass)
         f = tp.locate(im, self.tp_diameter, minmass=new_minmass)
         assert len(f) == self.N
-        
+
     def test_oldmass_invert(self):
         old_minmass = 2800000
         im = draw_spots(self.shape, self.pos, self.size, bitdepth=12,
@@ -109,7 +109,7 @@ class OldMinmass(StrictTestCase):
         assert len(f) == self.N
 
 
-class CommonFeatureIdentificationTests(object):
+class CommonFeatureIdentificationTests:
     def check_skip(self):
         pass
 
@@ -620,7 +620,7 @@ class CommonFeatureIdentificationTests(object):
         # ~0.02 precision, as long as the mask is large enough to cover
         # the whole object.
         self.check_skip()
-        L = 501 
+        L = 501
         dims = (L + 2, L)  # avoid square images in tests
         pos = [50, 55]
         cols = ['y', 'x']
@@ -674,7 +674,7 @@ class CommonFeatureIdentificationTests(object):
         draw_size = 4.5
         locate_diameter = 21
         N = 200
-        noise_levels = (np.array([0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5]) * (2**12 - 1)).astype(np.int)
+        noise_levels = (np.array([0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5]) * (2**12 - 1)).astype(int)
         real_rms_dev = []
         eps = []
         actual_black_level = []
@@ -739,7 +739,7 @@ class CommonFeatureIdentificationTests(object):
         draw_feature(image, pos, 3.75)
 
         guess = np.array([[6, 13]])
-        actual = refine_com_arr(image, image, 6, guess,characterize=False,
+        actual = refine_com_arr(image, image, 6, guess, characterize=False,
                                 engine=self.engine)[:, :2]
         assert_allclose(actual, expected, atol=0.1)
 

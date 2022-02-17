@@ -1,8 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import six
-
 import numpy as np
 import pandas as pd
 from ..try_numba import try_numba_jit
@@ -15,7 +10,7 @@ from ..utils import (validate_tuple, guess_pos_columns, default_pos_columns,
 from ..masks import (binary_mask, r_squared_mask,
                      x_squared_masks, cosmask, sinmask)
 
-from ..try_numba import NUMBA_AVAILABLE, range, int, round
+from ..try_numba import NUMBA_AVAILABLE, int, round
 
 
 logger = logging.getLogger(__name__)
@@ -127,7 +122,7 @@ def refine_com_arr(raw_image, image, radius, coords, max_iterations=10,
             engine = 'python'
 
     # In here, coord is an integer. Make a copy, will not modify inplace.
-    coords = np.round(coords).astype(np.int)
+    coords = np.round(coords).astype(int)
 
     if engine == 'python':
         results = _refine(raw_image, image, radius, coords, max_iterations,

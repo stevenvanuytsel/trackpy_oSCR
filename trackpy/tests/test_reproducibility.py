@@ -1,30 +1,18 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import os
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_array_equal, assert_allclose
+from scipy.spatial import cKDTree
 
 import trackpy as tp
 from trackpy.preprocessing import invert_image
-from trackpy.utils import cKDTree, pandas_iloc, is_scipy_since_100
 from trackpy.tests.common import TrackpyImageSequence
 from trackpy.tests.common import assert_traj_equal, StrictTestCase
 
 path, _ = os.path.split(os.path.abspath(__file__))
 
 
-# The reproducibility tests differ depending on the Scipy version, because of
-# changed rounding properties of `scipy.ndimage.filters.uniform_filter1d`. These
-# changes propagate via trackpy's preprocessing into the tested values in the
-# following tests: `test_find_bp`, `test_locate`, `test_refine`, and
-# `test_characterize`. See GH issue #459.
-if is_scipy_since_100:
-    reproduce_fn = 'reproducibility_v0.4.npz'
-else:
-    reproduce_fn = 'reproducibility_v0.4_pre_scipy_v1.0.npz'
-reproduce_fn = os.path.join(path, 'data', reproduce_fn)
+reproduce_fn = os.path.join(path, 'data', 'reproducibility_v0.4.npz')
 
 
 def compare_pos_df(actual, expected, pos_atol=0.001, lost_atol=1):
@@ -56,12 +44,12 @@ def compare_pos_df(actual, expected, pos_atol=0.001, lost_atol=1):
         i_appeared1 = np.argwhere(~np.in1d(np.arange(len(coords1)),
                                            np.concatenate(
                                                [i_equal0, i_dev0]))).ravel()
-        lost0.append(pandas_iloc(expected_frame, i_lost0).index.values)
-        appeared1.append(pandas_iloc(actual_frame, i_appeared1).index.values)
-        dev0.append(pandas_iloc(expected_frame, i_dev0).index.values)
-        dev1.append(pandas_iloc(actual_frame, i_dev1).index.values)
-        equal0.append(pandas_iloc(expected_frame, i_equal0).index.values)
-        equal1.append(pandas_iloc(actual_frame, i_equal1).index.values)
+        lost0.append(expected_frame.iloc[i_lost0].index.values)
+        appeared1.append(actual_frame.iloc[i_appeared1].index.values)
+        dev0.append(expected_frame.iloc[i_dev0].index.values)
+        dev1.append(actual_frame.iloc[i_dev1].index.values)
+        equal0.append(expected_frame.iloc[i_equal0].index.values)
+        equal1.append(actual_frame.iloc[i_equal1].index.values)
 
     return np.concatenate(lost0), np.concatenate(appeared1), \
            (np.concatenate(dev0), np.concatenate(dev1)), \
@@ -71,7 +59,7 @@ def compare_pos_df(actual, expected, pos_atol=0.001, lost_atol=1):
 class TestReproducibility(StrictTestCase):
     @classmethod
     def setUpClass(cls):
-        super(TestReproducibility, cls).setUpClass()
+        super().setUpClass()
         npz = np.load(reproduce_fn)
         cls.expected_find_raw = npz['arr_0']
         cls.expected_find_bp = npz['arr_1']
@@ -127,7 +115,7 @@ class TestReproducibility(StrictTestCase):
     def test_link_nomemory(self):
         expected = pd.DataFrame(self.coords_link,
                                 columns=self.pos_columns + ['frame'])
-        expected['frame'] = expected['frame'].astype(np.int)
+        expected['frame'] = expected['frame'].astype(int)
         actual = tp.link(expected, **self.link_params)
         expected['particle'] = self.expected_link
 
@@ -136,7 +124,7 @@ class TestReproducibility(StrictTestCase):
     def test_link_memory(self):
         expected = pd.DataFrame(self.coords_link,
                                 columns=self.pos_columns + ['frame'])
-        expected['frame'] = expected['frame'].astype(np.int)
+        expected['frame'] = expected['frame'].astype(int)
         actual = tp.link(expected, memory=self.memory, **self.link_params)
         expected['particle'] = self.expected_link_memory
 

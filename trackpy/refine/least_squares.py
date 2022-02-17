@@ -1,6 +1,3 @@
-from __future__ import division, print_function, absolute_import
-
-import six
 import logging
 import warnings
 import numpy as np
@@ -9,7 +6,8 @@ from scipy.optimize import minimize
 from ..static import cluster
 from ..masks import slice_image
 from ..utils import (guess_pos_columns, validate_tuple, is_isotropic, safe_exp,
-                     ReaderCached, default_pos_columns, default_size_columns)
+                     ReaderCached, default_pos_columns, default_size_columns,
+                     is_scipy_15)
 from .center_of_mass import refine_com
 
 try:
@@ -168,7 +166,7 @@ def vect_to_params(vect, params, modes, groups=None):
     return result
 
 
-class FitFunctions(object):
+class FitFunctions:
     """Helper class maintaining fit functions and bounds.
 
     See also
@@ -427,7 +425,7 @@ def prepare_subimage(coords, image, radius):
     # to mask the image
     mask_total = np.any(dist, axis=0).T
     # to mask the masked image
-    masks_singles = np.empty((len(coords), mask_total.sum()), dtype=np.bool)
+    masks_singles = np.empty((len(coords), mask_total.sum()), dtype=bool)
     for i, _dist in enumerate(dist):
         masks_singles[i] = _dist.T[mask_total]
 
@@ -697,6 +695,13 @@ def refine_leastsq(f, reader, diameter, separation=None, fit_function='gauss',
     with sub-pixel accuracy and precision. J. Phys. Condens. Mat. 29:44001 (2017)
     DOI: http://dx.doi.org/10.1088/1361-648X/29/4/044001
     """
+    if is_scipy_15:
+        # see https://github.com/scipy/scipy/pull/13009
+        warnings.warn(
+            "refine_leastsq does not work well with scipy 1.5.*. "
+            "We recommend upgrading or downgrading the scipy version."
+        )
+
     _kwargs = dict(method='SLSQP', tol=1E-6,
                    options=dict(maxiter=100, disp=False))
     _kwargs.update(kwargs)
@@ -741,8 +746,8 @@ def refine_leastsq(f, reader, diameter, separation=None, fit_function='gauss',
         logging = False
 
     if ndim != len(pos_columns):
-        raise ValueError('The image dimensionality ({0}) does not match the '
-                         'number of dimensions in the feature DataFrame ({1})'
+        raise ValueError('The image dimensionality ({}) does not match the '
+                         'number of dimensions in the feature DataFrame ({})'
                          ''.format(ndim, str(pos_columns)))
     if t_column not in f:
         raise ValueError('The expected column for frame indices ("{0}") is not '
@@ -841,10 +846,9 @@ def refine_leastsq(f, reader, diameter, separation=None, fit_function='gauss',
                                                               radius)
                 residual, jacobian = ff.get_residual(sub_images, meshes, masks,
                                                      params, groups, norm)
-
                 result = minimize(residual, vect, bounds=f_bounds,
-                                  constraints=f_constraints, jac=jacobian,
-                                  **_kwargs)
+                                constraints=f_constraints, jac=jacobian,
+                                **_kwargs)
                 if not result['success']:
                     raise RefineException(result['message'])
 
@@ -861,9 +865,9 @@ def refine_leastsq(f, reader, diameter, separation=None, fit_function='gauss',
 
             # check the final difference between fit and image
             if rms_dev > max_rms_dev:
-                raise RefineException('The rms deviation of the fit ({0:.4f} is'
+                raise RefineException('The rms deviation of the fit ({:.4f} is'
                                       'more than the maximum value of '
-                                      '{1:.4f}.'.format(rms_dev, max_rms_dev))
+                                      '{:.4f}.'.format(rms_dev, max_rms_dev))
 
             # estimate the errors using the Hessian matrix
             # see Bevington PR, Robinson DK (2003) Data reduction and error
@@ -1249,7 +1253,7 @@ def _wrap_constraints(constraints, params_const, modes, groups=None):
         return []
 
     if groups is not None:
-        cl_sizes = np.array([len(g) for g in groups[0]], dtype=np.int)
+        cl_sizes = np.array([len(g) for g in groups[0]], dtype=int)
 
     result = []
     for cons in constraints:

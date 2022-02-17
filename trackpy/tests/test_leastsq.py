@@ -1,13 +1,10 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from unittest import SkipTest
 
 import numpy as np
 import pandas as pd
 from numpy.testing import assert_allclose
 
-from trackpy.utils import validate_tuple
+from trackpy.utils import validate_tuple, is_scipy_15
 from trackpy.refine import refine_com, refine_leastsq
 from trackpy.artificial import (feat_gauss, rot_2d, rot_3d, draw_feature,
                                 draw_cluster, SimulatedImage)
@@ -32,7 +29,7 @@ SIZE_3D = 4.
 SIZE_2D_ANISOTROPIC = (5., 3.)
 SIZE_3D_ANISOTROPIC = (3., 5., 5.)
 
-class RefineTsts(object):
+class RefineTsts:
     skip = False
     dtype = np.uint8
     signal = SIGNAL
@@ -60,7 +57,7 @@ class RefineTsts(object):
 
     @classmethod
     def setUpClass(cls):
-        super(RefineTsts, cls).setUpClass()
+        super().setUpClass()
         cls.size = validate_tuple(cls.size, cls.ndim)
         if not hasattr(cls, 'diameter'):
             cls.diameter = tuple([int(s * 4) for s in cls.size])
@@ -87,6 +84,8 @@ class RefineTsts(object):
     def setUp(self):
         if self.skip:
             raise SkipTest()
+        if is_scipy_15:
+            raise SkipTest("Skipping refine_leastsq tests on Scipy 1.5")
 
     def get_image(self, noise=0, signal_dev=0., size_dev=0., separation=None,
                   N=None):
@@ -98,9 +97,9 @@ class RefineTsts(object):
         Nsqrt = int(N**(1/self.ndim) + 0.9999)
         pos = np.meshgrid(*[np.arange(0, s * Nsqrt, s) for s in separation],
                           indexing='ij')
-        pos = np.array([p.ravel() for p in pos], dtype=np.float).T[:N] + margin
+        pos = np.array([p.ravel() for p in pos], dtype=float).T[:N] + margin
         pos += (np.random.random(pos.shape) - 0.5)  #randomize subpixel location
-        shape = tuple(np.max(pos, axis=0).astype(np.int) + margin)
+        shape = tuple(np.max(pos, axis=0).astype(int) + margin)
         if signal_dev > 0:
             signal = self.signal * np.random.uniform(1-signal_dev, 1+signal_dev,
                                                      N)
@@ -136,7 +135,7 @@ class RefineTsts(object):
         Nsqrt = int(N**(1/self.ndim) + 0.9999)
         pos = np.meshgrid(*[np.arange(0, s * Nsqrt, s) for s in separation],
                           indexing='ij')
-        pos = np.array([p.ravel() for p in pos], dtype=np.float).T[:N] + margin
+        pos = np.array([p.ravel() for p in pos], dtype=float).T[:N] + margin
         pos += (np.random.random(pos.shape) - 0.5)  #randomize subpixel location
         if self.ndim == 2 and angle is None:
             angles = np.random.uniform(0, 2*np.pi, N)
@@ -147,7 +146,7 @@ class RefineTsts(object):
         elif self.ndim == 3 and angle is not None:
             angles = np.repeat([angle], N, axis=0)
 
-        shape = tuple(np.max(pos, axis=0).astype(np.int) + margin)
+        shape = tuple(np.max(pos, axis=0).astype(int) + margin)
         if signal_dev > 0:
             signal = self.signal * np.random.uniform(1-signal_dev, 1+signal_dev,
                                                      N)
@@ -183,14 +182,14 @@ class RefineTsts(object):
     def to_dataframe(self, coords, signal, size, cluster_size=1):
         f0 = pd.DataFrame(coords, columns=self.pos_columns)
         f0['signal'] = signal
-        f0['signal'] = f0['signal'].astype(np.float)
+        f0['signal'] = f0['signal'].astype(float)
         if self.isotropic:
             f0[self.size_columns[0]] = size[0]
-            f0[self.size_columns[0]] = f0[self.size_columns[0]].astype(np.float)
+            f0[self.size_columns[0]] = f0[self.size_columns[0]].astype(float)
         else:
             for col, s in zip(self.size_columns, size):
                 f0[col] = s
-                f0[col] = f0[col].astype(np.float)
+                f0[col] = f0[col].astype(float)
         f0['cluster'] = np.repeat(np.arange(len(coords) // cluster_size),
                                   cluster_size)
         f0['cluster_size'] = cluster_size
@@ -312,8 +311,8 @@ class RefineTsts(object):
                 result['perp_err_mean'] = (result['y1_err_mean'] - result['y0_err_mean']) / 2
                 result['parr_err_accuracy'] = (result['x1_err_accuracy'] - result['x0_err_accuracy']) / 2
                 result['perp_err_accuracy'] = (result['y1_err_accuracy'] - result['y0_err_accuracy']) / 2
-                result['parr_err_precision'] = np.sqrt((result['x0_err_precision']**2 + result['x0_err_precision']**2))
-                result['perp_err_precision'] = np.sqrt((result['y0_err_precision']**2 + result['y0_err_precision']**2))
+                result['parr_err_precision'] = np.sqrt(result['x0_err_precision']**2 + result['x0_err_precision']**2)
+                result['perp_err_precision'] = np.sqrt(result['y0_err_precision']**2 + result['y0_err_precision']**2)
         # rms relative signal deviation
         result['signal'] = np.mean((1 - actual_signal / expected_signal)**2)**0.5
         # rms relative size deviation
@@ -803,6 +802,8 @@ class TestMultiple(StrictTestCase):
     diameter = 21
     separation = 24
     def setUp(self):
+        if is_scipy_15:
+            raise SkipTest("Skipping refine_leastsq tests on Scipy 1.5")
         self.signal = 200
         if not hasattr(self, 'size'):
             if hasattr(self.diameter, '__iter__'):
@@ -961,11 +962,11 @@ class TestFitFunctions(StrictTestCase):
             background, signal, yc, xc, size = p
             return background + signal*np.exp(-((y - yc)**2/size**2 + (x - xc)**2/size**2))
         ff = FitFunctions('gauss', ndim=2, isotropic=True)
-        params = np.array([[5, 200, 4, 5, 6]], dtype=np.float)
+        params = np.array([[5, 200, 4, 5, 6]], dtype=float)
 
         image = np.random.random(self.repeats) * 200
         mesh = np.random.random((ff.ndim, self.repeats)) * 10
-        masks = np.full((1, self.repeats), True, dtype=np.bool)
+        masks = np.full((1, self.repeats), True, dtype=bool)
 
         residual, jacobian = ff.get_residual([image], [mesh], [masks], params)
 

@@ -1,7 +1,5 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
-from .utils import cKDTree, guess_pos_columns
+from scipy.spatial import cKDTree
+from .utils import guess_pos_columns
 import numpy as np
 from pandas import DataFrame
 
@@ -402,7 +400,7 @@ def area_3d_bounded(dist, pos, box):
     return area
 
 
-class Clusters(object):
+class Clusters:
     """ Class that clusters features."""
     @classmethod
     def from_pairs(cls, pairs, length):
@@ -502,8 +500,8 @@ def cluster(f, separation, pos_columns=None, t_column='frame'):
     else:
         remove_t_column = False
 
-    result = pandas_concat((x[1] for x in cluster_iter(f, separation, pos_columns,
-                                                   t_column)))
+    result = pandas_concat(x[1] for x in cluster_iter(f, separation, pos_columns,
+                                                   t_column))
 
     if remove_t_column:
         del f[t_column]

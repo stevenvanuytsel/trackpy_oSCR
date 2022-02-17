@@ -1,11 +1,10 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six, os, glob
+import os, glob
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose, assert_equal, assert_array_equal
 import trackpy as tp
-from trackpy.utils import cKDTree, pandas_sort, make_pandas_strict
+from scipy.spatial import cKDTree
+from trackpy.utils import pandas_sort, make_pandas_strict
 from trackpy.artificial import SimulatedImage
 from matplotlib.pyplot import imread
 
@@ -85,7 +84,7 @@ class TrackpyFrame(np.ndarray):
         return np.ndarray.__array_wrap__(self, out_arr, context)
 
 
-class TrackpyImageSequence(object):
+class TrackpyImageSequence:
     """Simplified version of pims.ImageSequence, for testing purposes only."""
     def __init__(self, path_spec):
         self._get_files(path_spec)
@@ -95,7 +94,7 @@ class TrackpyImageSequence(object):
 
     def _get_files(self, path_spec):
         # deal with if input is _not_ a string
-        if not isinstance(path_spec, six.string_types):
+        if not isinstance(path_spec, str):
             # assume it is iterable and off we go!
             self._filepaths = list(path_spec)
             self._count = len(self._filepaths)
@@ -115,7 +114,7 @@ class TrackpyImageSequence(object):
 
         # If there were no matches, this was probably a user typo.
         if self._count == 0:
-            raise IOError("No files were found matching that path.")
+            raise OSError("No files were found matching that path.")
 
     def __getitem__(self, j):
         image = imread(self._filepaths[j])
@@ -134,7 +133,7 @@ class TrackpyImageSequence(object):
         return np.uint8
 
 
-class CoordinateReader(object):
+class CoordinateReader:
     """Generate a pims.FramesSquence-like object that draws features at
     given coordinates"""
     def __init__(self, f, shape, size, t=None, **kwargs):
