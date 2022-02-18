@@ -83,7 +83,7 @@ def refine_com(raw_image, image, radius, coords, max_iterations=10,
     if characterize:
         isotropic = radius[1:] == radius[:-1]
         columns += default_size_columns(image.ndim, isotropic) + \
-            ['ecc', 'signal', 'raw_mass', 'raw_signal']
+            ['ecc', 'signal', 'raw_signal','raw_mass', 'mean_raw_intensity', 'stdev_raw_intensity']
 
     if len(coords) == 0:
         return pd.DataFrame(columns=columns)
@@ -279,6 +279,8 @@ def _refine(raw_image, image, radius, coords, max_iterations,
         raw_neighborhood = mask * raw_image[rect]
         raw_mass[feat] = raw_neighborhood.sum()  # based on raw image
         raw_signal[feat] = raw_neighborhood.max() # based on raw image
+        mean_raw_intensity[feat] = raw_neighborhood.mean() # based on raw image
+        stdev_raw_intensity[feat] = raw_neighborhood.stdev() # based on raw image
 
     if not characterize:
         return np.column_stack([final_coords, mass])
