@@ -285,7 +285,7 @@ def _refine(raw_image, image, radius, coords, max_iterations,
     if not characterize:
         return np.column_stack([final_coords, mass])
     else:
-        return np.column_stack([final_coords, raw_mass, raw_signal, mean_raw_intensity, stdev_raw_intensity])
+        return np.column_stack([final_coords, Rg, ecc, raw_mass, raw_signal, mean_raw_intensity, stdev_raw_intensity])
 
 
 @try_numba_jit(nopython=True)
