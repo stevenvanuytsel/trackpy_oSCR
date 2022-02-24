@@ -11,6 +11,7 @@ from ..masks import (binary_mask, r_squared_mask,
                      x_squared_masks, cosmask, sinmask)
 
 from ..try_numba import NUMBA_AVAILABLE, int, round
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ def _safe_center_of_mass(x, radius, grids):
 
 
 def refine_com(raw_image, image, radius, coords, max_iterations=10,
-               engine='auto', shift_thresh=0.6, characterize=True,
+               engine='python', shift_thresh=0.6, characterize=True,
                pos_columns=None):
     """Find the center of mass of a bright feature starting from an estimate.
 
@@ -83,7 +84,7 @@ def refine_com(raw_image, image, radius, coords, max_iterations=10,
     if characterize:
         isotropic = radius[1:] == radius[:-1]
         columns += default_size_columns(image.ndim, isotropic) + \
-            ['ecc', 'raw_signal','raw_mass', 'mean_raw_intensity', 'stdev_raw_intensity']
+            ['ecc', 'raw_mass','raw_signal', 'mean_raw_mass']
 
     if len(coords) == 0:
         return pd.DataFrame(columns=columns)
@@ -216,8 +217,8 @@ def _refine(raw_image, image, radius, coords, max_iterations,
     # Declare arrays that we will fill iteratively through loop.
     N = coords.shape[0]
     final_coords = np.empty_like(coords, dtype=np.float64)
-    mass = np.empty(N, dtype=np.float64)
     raw_mass = np.empty(N, dtype=np.float64)
+    mass = np.empty(N, dtype=np.float64)
     if characterize:
         if isotropic:
             Rg = np.empty(N, dtype=np.float64)
@@ -226,7 +227,6 @@ def _refine(raw_image, image, radius, coords, max_iterations,
         ecc = np.empty(N, dtype=np.float64)
         raw_signal = np.empty(N, dtype=np.float64)
         mean_raw_intensity = np.empty(N, dtype=np.float64)
-        stdev_raw_intensity = np.empty(N, dtype=np.float64)
 
     ogrid = np.ogrid[[slice(0, i) for i in mask.shape]]  # for center of mass
     ogrid = [g.astype(float) for g in ogrid]
@@ -258,7 +258,9 @@ def _refine(raw_image, image, radius, coords, max_iterations,
             import matplotlib.pyplot as plt
             plt.imshow(neighborhood)
 
-        # Characterize the neighborhood of our final centroid.
+        # Characterize the neighborhood of our final centroid
+        raw_neighborhood = mask * raw_image[rect]
+        raw_mass[feat] = raw_neighborhood.sum()
         mass[feat] = neighborhood.sum()
         if not characterize:
             continue  # short-circuit loop
@@ -272,22 +274,18 @@ def _refine(raw_image, image, radius, coords, max_iterations,
                                mass[feat])
         # I only know how to measure eccentricity in 2D.
         if ndim == 2:
-            ecc[feat] = np.sqrt(np.sum(neighborhood*cosmask(radius))**2 +
-                                np.sum(neighborhood*sinmask(radius))**2)
-            ecc[feat] /= (mass[feat] - neighborhood[radius] + 1e-6)
+            ecc[feat] = np.sqrt(np.sum(raw_neighborhood*cosmask(radius))**2 +
+                                np.sum(raw_neighborhood*sinmask(radius))**2)
+            ecc[feat] /= (raw_mass[feat] - raw_neighborhood[radius] + 1e-6)
         else:
             ecc[feat] = np.nan
-        signal[feat] = neighborhood.max()  # based on bandpassed image
-        raw_neighborhood = mask * raw_image[rect]
-        raw_mass[feat] = raw_neighborhood.sum()  # based on raw image
         raw_signal[feat] = raw_neighborhood.max() # based on raw image
         mean_raw_intensity[feat] = raw_neighborhood.mean() # based on raw image
-        stdev_raw_intensity[feat] = raw_neighborhood.stdev() # based on raw image
 
     if not characterize:
-        return np.column_stack([final_coords, mass])
+        return np.column_stack([final_coords, mass, raw_mass])
     else:
-        return np.column_stack([final_coords, Rg, ecc, raw_mass, raw_signal, mean_raw_intensity, stdev_raw_intensity])
+        return np.column_stack([final_coords, mass, Rg, ecc, raw_mass, raw_signal, mean_raw_intensity])
 
 
 @try_numba_jit(nopython=True)

@@ -452,7 +452,7 @@ def locate(raw_image, diameter, minmass=None, maxsize=None, separation=None,
 
         if ep.ndim == 1:
             refined_coords['ep'] = ep
-            refined_coords['S/N'] = mass/noise
+            refined_coords['S/N'] = (refined_coords['raw_signal']-black_level)/noise
         else:
             ep = pd.DataFrame(ep, columns=['ep_' + cc for cc in pos_columns])
             refined_coords = pandas_concat([refined_coords, ep], axis=1)
