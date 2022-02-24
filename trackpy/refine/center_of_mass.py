@@ -224,7 +224,9 @@ def _refine(raw_image, image, radius, coords, max_iterations,
         else:
             Rg = np.empty((N, len(radius)), dtype=np.float64)
         ecc = np.empty(N, dtype=np.float64)
-        signal = np.empty(N, dtype=np.float64)
+        raw_signal = np.empty(N, dtype=np.float64)
+        mean_raw_intensity = np.empty(N, dtype=np.float64)
+        stdev_raw_intensity = np.empty(N, dtype=np.float64)
 
     ogrid = np.ogrid[[slice(0, i) for i in mask.shape]]  # for center of mass
     ogrid = [g.astype(float) for g in ogrid]
