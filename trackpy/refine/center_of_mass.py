@@ -83,7 +83,7 @@ def refine_com(raw_image, image, radius, coords, max_iterations=10,
     if characterize:
         isotropic = radius[1:] == radius[:-1]
         columns += default_size_columns(image.ndim, isotropic) + \
-            ['ecc', 'signal', 'raw_signal','raw_mass', 'mean_raw_intensity', 'stdev_raw_intensity']
+            ['ecc', 'raw_signal','raw_mass', 'mean_raw_intensity', 'stdev_raw_intensity']
 
     if len(coords) == 0:
         return pd.DataFrame(columns=columns)
