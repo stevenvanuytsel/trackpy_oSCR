@@ -274,9 +274,9 @@ def _refine(raw_image, image, radius, coords, max_iterations,
                                mass[feat])
         # I only know how to measure eccentricity in 2D.
         if ndim == 2:
-            ecc[feat] = np.sqrt(np.sum(raw_neighborhood*cosmask(radius))**2 +
-                                np.sum(raw_neighborhood*sinmask(radius))**2)
-            ecc[feat] /= (raw_mass[feat] - raw_neighborhood[radius] + 1e-6)
+            ecc[feat] = np.sqrt(np.sum(neighborhood*cosmask(radius))**2 +
+                                np.sum(neighborhood*sinmask(radius))**2)
+            ecc[feat] /= (mass[feat] - neighborhood[radius] + 1e-6)
         else:
             ecc[feat] = np.nan
         raw_signal[feat] = raw_neighborhood.max() # based on raw image
