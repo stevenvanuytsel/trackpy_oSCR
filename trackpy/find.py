@@ -110,7 +110,7 @@ def grey_dilation(image, separation, percentile=64, margin=None, precise=True):
         return np.empty((0, ndim))
 
     # Find the largest box that fits inside the ellipse given by separation
-    size = [int(2 * s / np.sqrt(ndim)) for s in separation]
+    size = [int(s) for s in separation]
 
     # The intersection of the image with its dilation gives local maxima.
     dilation = ndimage.grey_dilation(image, size, mode='constant')
