@@ -6,6 +6,8 @@ import warnings
 from warnings import warn
 from .utils import pandas_sort, pandas_concat, guess_pos_columns
 
+import sys
+
 
 def msd(traj, mpp, fps, max_lagtime=100, detail=False, pos_columns=None):
     """Compute the mean displacement and mean squared displacement of one
@@ -232,14 +234,26 @@ def emsd(traj, mpp, fps, max_lagtime=100, detail=False, pos_columns=None):
         msds.append(msd(ptraj, mpp, fps, max_lagtime, True, pos_columns))
         ids.append(pid)
     msds = pandas_concat(msds, keys=ids, names=['particle', 'frame'])
-    results = msds.mul(msds['N'], axis=0).mean(level=1)  # weighted average
-    results = results.div(msds['N'].mean(level=1), axis=0)  # weights normalized
+    # Take sum of N for every frame over all particles
+    N = msds['N'].sum(level=1)
+    # Count number of Ns for every frame over all particles
+    count_N = msds['N'].count(level=1)
+    # Calculate weighted displacements
+    weighted = msds.loc[:, ~msds.columns.isin(['N', 'lagt'])].mul(msds['N'], axis=0).sum(level=1).div(N, axis=0)
+    # Calculate weighted standard deviations for all displacements 
+    results = msds.loc[:, ~msds.columns.isin(['N', 'lagt'])]
+    stdevs = np.sqrt(np.square(results.subtract(weighted, level=1)).mul(msds['N'], axis=0).sum(level=1).div(N*(count_N-1)/count_N, axis=0))
+    col_headers = [f'd_{x}' for x in stdevs.columns]
+    stdevs.columns = col_headers
+    results = pd.concat([stdevs, weighted], axis=1)
+    # Add lagt and N back to total column
+    results['lagt'] = msds['lagt'].mean(level=1)
+    results['N'] = N
     # Above, lagt is lumped in with the rest for simplicity and speed.
     # Here, rebuild it from the frame index.
     if not detail:
-        return results.set_index('lagt')['msd']
+        return results.set_index('lagt')[['msd', 'd_msd']]
     # correctly compute the effective number of independent measurements
-    results['N'] = msds['N'].sum(level=1)
     return results
 
 
