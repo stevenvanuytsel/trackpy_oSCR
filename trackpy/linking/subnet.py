@@ -10,6 +10,10 @@ from ..utils import default_pos_columns
 
 try:
     from sklearn.neighbors import BallTree
+    try:
+        from sklearn.metrics import DistanceMetric
+    except ImportError:
+        from sklearn.neighbors import DistanceMetric
 except ImportError:
     BallTree = None
 
@@ -48,14 +52,7 @@ class HashBase:
         """Predict and convert points to an array."""
         if self.predictor is None:
             return points_to_arr(points)
-        try:
-            for p in points:
-                p.pos = p.pos[::-1]
-            result = np.array(list(self.predictor(self.t, points)))
-        finally:
-            for p in points:  # swap axes order back
-                p.pos = p.pos[::-1]
-        return result[:, ::-1]
+        return np.array(list(self.predictor(self.t, points)))
 
     @property
     def coords(self):
@@ -195,8 +192,12 @@ class HashBTree(HashBase):
             if self.dist_func is None:
                 self._btree = BallTree(coords_mapped)
             else:
-                self._btree = BallTree(coords_mapped,
-                                       metric='pyfunc', func=self.dist_func)
+                if isinstance(self.dist_func, DistanceMetric):
+                    self._btree = BallTree(coords_mapped,
+                                           metric=self.dist_func)
+                else:
+                    self._btree = BallTree(coords_mapped,
+                                           metric='pyfunc', func=self.dist_func)
         # This could be tuned
         self._clean = True
 

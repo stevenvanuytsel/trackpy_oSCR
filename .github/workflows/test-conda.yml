@@ -1,6 +1,6 @@
 name: Conda
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   TestConda:
@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python: [3.8, 3.9]
+        python: [3.8, 3.9, "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Environment
         shell: bash
         run: |
-          conda create --name test python=${{ matrix.python }} pytest numpy scipy matplotlib pandas pytables numba scikit-learn pyyaml
+          conda create --name test python=${{ matrix.python }} pytest numpy scipy matplotlib pandas pytables numba scikit-learn pyyaml looseversion
           source activate test
           python -V
           conda info
